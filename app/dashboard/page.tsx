@@ -13,6 +13,9 @@ import {
   CalendarDays,
 } from "lucide-react"
 import Navbar from "@/components/NavBar"
+import { productService } from "@/services/product.service"
+import { categoryService } from "@/services/category.service"
+import { Category, Product } from "../generated/prisma/client"
 
 interface ExistingBooking {
   id: string
@@ -24,7 +27,7 @@ interface ExistingBooking {
 
 export default function UserDashboard() {
   const router = useRouter()
-  const [resources, setResources] = useState<Resource[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
@@ -35,28 +38,21 @@ export default function UserDashboard() {
   const [selectedCategory, setSelectedCategory] = useState("")
 
   // Booking Modal
-  const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
-  const [startTime, setStartTime] = useState("")
-  const [endTime, setEndTime] = useState("")
-  const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([])
-  const [loadingBookings, setLoadingBookings] = useState(false)
-  const [bookingSubmitting, setBookingSubmitting] = useState(false)
-  const [bookingError, setBookingError] = useState("")
-  const [bookingSuccess, setBookingSuccess] = useState("")
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   const loadData = async () => {
     setLoading(true)
     setError(null)
 
-    const [resData, catData] = await Promise.all([
-      resourceService.getAll(),
+    const [productData, catData] = await Promise.all([
+      productService.getAll(),
       categoryService.getAll(),
     ])
 
-    if (resData.success && resData.data) {
-      setResources(resData.data)
+    if (productData.success && productData.data) {
+      setProducts(productData.data)
     } else {
-      setError(resData.error || "Failed to load resources")
+      setError(productData.error || "Failed to load resources")
     }
 
     if (catData.success && catData.data) {
@@ -65,6 +61,7 @@ export default function UserDashboard() {
 
     setLoading(false)
   }
+}
 
   useEffect(() => {
     setMounted(true)
@@ -76,91 +73,7 @@ export default function UserDashboard() {
     loadData()
   }, [router])
 
-  // Fetch active bookings specifically for the selected resource when opening the modal
-  const handleOpenBookingModal = async (resource: Resource) => {
-    setSelectedResource(resource)
-    setStartTime("")
-    setEndTime("")
-    setBookingError("")
-    setBookingSuccess("")
-    setExistingBookings([])
-    setLoadingBookings(true)
-
-    // Pass resourceId explicitly so backend returns all booked slots for this resource
-    const res = await reservationService.getAll({ resourceId: resource.id })
-    if (res.success && res.data) {
-      const activeBookings = res.data.filter(
-        (b: ExistingBooking) =>
-          new Date(b.endTime) > new Date() &&
-          b.status !== "CANCELLED"
-      )
-      setExistingBookings(activeBookings)
-    }
-
-    setLoadingBookings(false)
-  }
-
-  // Real-time slot conflict checker
-  const hasConflict = () => {
-    if (!startTime || !endTime) return false
-    const start = new Date(startTime)
-    const end = new Date(endTime)
-    if (start >= end) return false
-
-    return existingBookings.some((b) => {
-      const bStart = new Date(b.startTime)
-      const bEnd = new Date(b.endTime)
-      // Overlap condition: startA < endB AND endA > startB
-      return start < bEnd && end > bStart
-    })
-  }
-
-  const handleCreateBooking = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setBookingError("")
-    setBookingSuccess("")
-
-    if (!startTime || !endTime) {
-      setBookingError("Please select both start and end times")
-      return
-    }
-
-    if (new Date(startTime) >= new Date(endTime)) {
-      setBookingError("End time must be after start time")
-      return
-    }
-
-    if (new Date(startTime) < new Date()) {
-      setBookingError("Start time cannot be in the past")
-      return
-    }
-
-    if (hasConflict()) {
-      setBookingError("The selected time slot conflicts with an existing reservation.")
-      return
-    }
-
-    setBookingSubmitting(true)
-
-    const res = await reservationService.create({
-      resourceId: selectedResource!.id,
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString(),
-    })
-
-    setBookingSubmitting(false)
-
-    if (res.success) {
-      setBookingSuccess("Reservation confirmed successfully!")
-      setTimeout(() => {
-        setSelectedResource(null)
-      }, 1500)
-    } else {
-      setBookingError(res.error || "Failed to complete reservation")
-    }
-  }
-
-  const filteredResources = resources.filter((item) => {
+  const filteredResources = product.filter((item) => {
     const query = searchTerm.toLowerCase()
     const matchesSearch =
       item.name.toLowerCase().includes(query) ||
@@ -373,4 +286,8 @@ export default function UserDashboard() {
       </main>
     </div>
   )
+}
+
+function setMounted(arg0: boolean) {
+  throw new Error("Function not implemented.")
 }
