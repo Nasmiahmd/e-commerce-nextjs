@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   ShoppingCartPlus,
+  PackagePlus,
 } from "lucide-react"
 
 interface User {
@@ -68,13 +69,13 @@ export default function Navbar() {
             {user.role === "ADMIN" && (
               <div className="flex items-center gap-4 pl-4 border-l border-gray-200">
                 <Link
-                  href="/admin/resources"
+                  href="/products"
                   className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition font-semibold"
                 >
-                  <Layers size={18} /> Manage Resources
+                  <PackagePlus size={18} /> Products
                 </Link>
                 <Link
-                  href="/admin/categories"
+                  href="/categories"
                   className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition font-semibold"
                 >
                   <Folder size={18} /> Categories
@@ -86,10 +87,10 @@ export default function Navbar() {
                   <Users size={18} /> Users
                 </Link>
                 <Link
-                  href="/admin/reservations"
+                  href="/orders"
                   className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition font-semibold"
                 >
-                  <CalendarCheck size={18} /> All System Bookings
+                  <ShoppingCartPlus size={18} /> All Orders
                 </Link>
               </div>
             )}
@@ -98,11 +99,13 @@ export default function Navbar() {
 
         {/* Right: Desktop Profile & Logout */}
         <div className="hidden lg:flex items-center gap-4">
+          <Link href={'/cart'}>
           <button
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600! hover:text-gray-900! hover:bg-green-100 transition hover:ring-1 hover:ring-green-700"
           >
             <ShoppingCartPlus size={16}/>
           </button>
+          </Link>
           <Link
             href="/profile"
             className="flex items-center gap-2.5 rounded-lg p-1.5 hover:bg-gray-50 hover:border-blue-200 transition cursor-pointer text-right group "

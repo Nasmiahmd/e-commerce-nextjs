@@ -1,188 +1,142 @@
+// components/HomeNavBar.tsx
 "use client"
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
-  Calendar,
-  Layers,
-  ShieldCheck,
-  Folder,
-  CalendarCheck,
-  User as UserIcon,
-  Users,
+  Store,
+  Package,
+  FolderOpen,
+  LogIn,
+  UserPlus,
   Menu,
   X,
-  LogIn,
 } from "lucide-react"
 
-interface User {
-  name: string
-  role: string
-  imageUrl?: string | null
-}
-
 export default function HomeNavbar() {
-  const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [mounted, setMounted] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (err) {
-        console.error("Failed to parse stored user:", err)
-      }
-    }
-  }, [])
+    const token = localStorage.getItem("token")
+    setIsLoggedIn(Boolean(token))
+  }, [pathname])
 
+  // Never show the public guest navbar when logged in
+  if (isLoggedIn) return null
 
-  // Render a consistent height placeholder during SSR and initial client hydration
-  if (!mounted || !user) {
-    return <div className="h-16 border-b bg-white shadow-sm" />
-  }
+  // const navLinks = [
+  //   { href: "/", label: "Storefront", icon: Store },
+  //   { href: "/products", label: "Products", icon: Package },
+  //   { href: "/categories", label: "Categories", icon: FolderOpen },
+  // ]
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href)
 
   return (
-    <nav className="sticky top-0 z-40 border-b bg-white shadow-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3.5">
-        {/* Left: Brand & Desktop Navigation */}
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="text-xl font-bold text-blue-600 shrink-0">
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
+        {/* Brand Logo */}
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-gray-900"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+            <Store size={18} />
+          </span><span className="text-xl font-bold text-blue-600 shrink-0">
             Trio <span className="text-gray-800">Shopping</span>
+          </span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        {/* <nav className="hidden items-center gap-1 md:flex">
+          {navLinks.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                isActive(href)
+                  ? "bg-blue-50 text-blue-600 font-semibold"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+            >
+              <Icon size={16} />
+              {label}
+            </Link>
+          ))}
+        </nav> */}
+
+        {/* Guest Auth Buttons (Desktop) */}
+        <div className="hidden items-center gap-2.5 md:flex">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+          >
+            <LogIn size={15} />
+            Login
+          </Link>
+          <Link
+            href="/register"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
+          >
+            <UserPlus size={15} />
+            Register
           </Link>
         </div>
 
-        {/* Right: Desktop Profile & Logout */}
-        <div className="hidden lg:flex items-center gap-1">
-          <div className="me-2 text-green-500 hover:text-green-700">Welcome Back!</div>
-
-          <Link href={'/login'}>
-          <button
-            className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-sky-600! hover:text-gray-900! hover:bg-green-100 transition hover:ring-1 hover:ring-green-700"
-          >
-            Log In 
-            <LogIn size={16} />
-          </button>
-          </Link>
-        </div>
-
-        {/* Mobile Hamburger Button (Visible below lg breakpoint) */}
-        <div className="flex lg:hidden items-center">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none transition"
-            aria-label="Toggle Menu"
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
+        {/* Mobile Menu Toggle */}
+        <button
+          type="button"
+          aria-label="Toggle navigation menu"
+          onClick={() => setMobileOpen((prev) => !prev)}
+          className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden"
+        >
+          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
 
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white px-4 pt-3 pb-6 space-y-4 shadow-lg animate-in slide-in-from-top duration-200">
-          {/* User Profile Summary */}
-          <Link
-            href="/profile"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-between rounded-xl bg-gray-50 p-3 hover:bg-blue-50/60 transition"
-          >
-            <div className="flex items-center gap-3">
-              {/* Mobile Cloudinary Avatar / Initial Fallback */}
-              <div className="h-10 w-10 overflow-hidden rounded-full bg-blue-600 text-white font-bold text-sm shadow-sm flex items-center justify-center shrink-0">
-                {user.imageUrl ? (
-                  <img src={user.imageUrl} alt={user.name} className="h-full w-full object-cover" />
-                ) : user.name ? (
-                  user.name.charAt(0).toUpperCase()
-                ) : (
-                  <UserIcon size={16} />
-                )}
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-gray-900">{user.name}</p>
-                <span className="inline-flex items-center text-xs text-gray-500">
-                  {user.role === "ADMIN" && <ShieldCheck size={12} className="mr-1 text-blue-600" />}
-                  {user.role}
-                </span>
-              </div>
-            </div>
-            <span className="text-xs font-semibold text-blue-600">View Profile →</span>
-          </Link>
-
-          {/* User Section Links */}
-          <div className="space-y-1">
-            <p className="px-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-              User Menu
-            </p>
-            <Link
-              href="/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition"
-            >
-              <Layers size={18} className="text-gray-400" /> Resources
-            </Link>
-            <Link
-              href="/reservations"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition"
-            >
-              <Calendar size={18} className="text-gray-400" /> My Cart
-            </Link>
-          </div>
-
-          {/* Admin Section Links */}
-          {user.role === "ADMIN" && (
-            <div className="space-y-1 pt-2 border-t border-gray-100">
-              <p className="px-2 text-[11px] font-bold uppercase tracking-wider text-blue-600">
-                Admin Controls
-              </p>
+      {/* Mobile Dropdown */}
+      {mobileOpen && (
+        <div className="border-t border-gray-200 bg-white px-6 py-4 md:hidden">
+          <div className="flex flex-col gap-1.5">
+            {/* {navLinks.map(({ href, label, icon: Icon }) => (
               <Link
-                href="/admin/resources"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition"
+                key={href}
+                href={href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                  isActive(href)
+                    ? "bg-blue-50 text-blue-600 font-semibold"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
               >
-                <Layers size={18} /> Manage Resources
+                <Icon size={16} />
+                {label}
+              </Link>
+            ))} */}
+
+            <div className="mt-2 flex gap-2">
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="w-1/2 rounded-lg border border-gray-300 py-2 text-center text-sm font-semibold text-gray-700"
+              >
+                Login
               </Link>
               <Link
-                href="/admin/categories"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition"
+                href="/register"
+                onClick={() => setMobileOpen(false)}
+                className="w-1/2 rounded-lg bg-blue-600 py-2 text-center text-sm font-semibold text-white"
               >
-                <Folder size={18} /> Categories
-              </Link>
-              <Link
-                href="/admin/users"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition"
-              >
-                <Users size={18} /> Users
-              </Link>
-              <Link
-                href="/admin/reservations"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition"
-              >
-                <CalendarCheck size={18} /> All System Bookings
+                Register
               </Link>
             </div>
-          )}
-
-          {/* Mobile Logout */}
-          <div className="pt-2 border-t border-gray-100">
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-100 transition"
-            >
-              <LogOut size={16} /> Logout
-            </button>
           </div>
         </div>
       )}
-    </nav>
+    </header>
   )
 }

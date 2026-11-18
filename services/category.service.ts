@@ -19,10 +19,36 @@ export interface UpdateCategoryInput {
   slug?: string
 }
 
+
+async function parseResponse<T>(res: Response, endpoint: string): Promise<T> {
+  const contentType = res.headers.get("content-type")
+  if (!contentType || !contentType.includes("application/json")) {
+    return {
+      success: false,
+      error: `${endpoint} returned ${res.status} (${res.statusText}) instead of JSON`,
+    } as T
+  }
+  return res.json()
+}
+
+
 export const categoryService = {
   // READ (All)
-  getAll: (): Promise<ApiResponse<Category[]>> => {
-    return api.get<Category[]>("/api/categories")
+  async getAll():Promise<ApiResponse<Category[]>> {
+    const res = await fetch("/api/categories")
+    return parseResponse<{ success: boolean; data?: Category[]; error?: string }>(
+      res,
+      "GET /api/categories"
+    )
+  },
+
+  // GET by ID
+  async getById(id: string) {
+    const res = await fetch(`/api/categories/${id}`)
+    return parseResponse<{ success: boolean; data?: Category; error?: string }>(
+      res,
+      `GET /api/categories/${id}`
+    )
   },
 
   // CREATE (Admin)

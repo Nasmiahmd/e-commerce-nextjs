@@ -7,6 +7,91 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id            String     @id @default(cuid())
+  name          String
+  email         String     @unique
+  googleId      String?    @unique
+  password      String?
+  imageUrl      String?
+  imagePublicId String?
+  role          Role       @default(USER)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  cartItems     CartItem[]
+  orders        Order[]
+  products      Product[]
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  name          String
+  description   String?
+  price         Decimal     @db.Decimal(10, 2)
+  stock         Int         @default(0)
+  imageUrl      String
+  imagePublicId String?
+  isArchived    Boolean     @default(false)
+  userId        String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  categoryId    String?
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  category      Category?   @relation(fields: [categoryId], references: [id])
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  quantity  Int      @default(1)
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  totalAmount     Decimal     @db.Decimal(10, 2)
+  status          OrderStatus @default(PENDING)
+  shippingAddress String
+  userId          String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  user            User        @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id              String   @id @default(cuid())
+  quantity        Int
+  productName     String
+  priceAtPurchase Decimal  @db.Decimal(10, 2)
+  orderId         String
+  productId       String?
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product? @relation(fields: [productId], references: [id])
+}
+
 enum Role {
   USER
   SELLER
@@ -19,103 +104,4 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
-}
-
-model User {
-  id            String     @id @default(cuid())
-  name          String
-  email         String     @unique
-  googleId      String?    @unique
-  password      String?
-  imageUrl      String?    // Cloudinary secure_url
-  imagePublicId String?    // Cloudinary public_id (used to delete old avatar on edit)
-  role          Role       @default(USER)
-
-  cartItems     CartItem[]
-  orders        Order[]
-  products      Product[]
-
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-}
-
-model Category {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  slug      String    @unique // URL-friendly filter key (e.g., "mens-clothing")
-  products  Product[]
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-model Product {
-  id            String      @id @default(cuid())
-  name          String
-  description   String?
-  price         Decimal     @db.Decimal(10, 2)
-  stock         Int         @default(0)
-  imageUrl      String?
-  imagePublicId String?
-  isArchived    Boolean     @default(false) // Hide from storefront without breaking past orders
-
-  userId        String
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  categoryId    String?
-  category      Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  cartItems     CartItem[]
-  orderItems    OrderItem[]
-
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  @@index([userId])     // Speeds up seller dashboard queries
-  @@index([categoryId]) // Speeds up homepage category filtering
-}
-
-model CartItem {
-  id        String   @id @default(cuid())
-  quantity  Int      @default(1)
-
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, productId]) // Keeps one row per product in a user's cart
-}
-
-model Order {
-  id              String      @id @default(cuid())
-  totalAmount     Decimal     @db.Decimal(10, 2)
-  status          OrderStatus @default(PENDING)
-  shippingAddress String
-
-  userId          String
-  user            User        @relation(fields: [userId], references: [id])
-  items           OrderItem[]
-
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  @@index([userId]) // Speeds up buyer order history queries
-}
-
-model OrderItem {
-  id              String   @id @default(cuid())
-  quantity        Int
-  productName     String   // Preserves name if product is later renamed or deleted
-  priceAtPurchase Decimal  @db.Decimal(10, 2)
-
-  orderId         String
-  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  productId       String?
-  product         Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 }

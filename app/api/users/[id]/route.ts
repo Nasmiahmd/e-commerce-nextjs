@@ -123,26 +123,68 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/users/[id] - Delete user (ADMIN only)
+type JwtPayload = {
+  id?: string
+  userId?: string
+  sub?: string
+  role?: string
+}
+
+// DELETE /api/users/[id] - Delete own account (Self) or any user (ADMIN)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const { error } = await requireAdmin(request)
+  const { user, error } = await authenticate(request)
   if (error) return error
 
+  const payload = user as JwtPayload
+  const currentUserId = payload?.id || payload?.userId || payload?.sub
   const { id } = await params
 
+  // Allow self-deletion OR admin deletion
+  if (!currentUserId || (currentUserId !== id && payload.role !== "ADMIN")) {
+    return NextResponse.json(
+      { success: false, error: "Forbidden: You can only delete your own account" },
+      { status: 403 }
+    )
+  }
+
   try {
-    await prisma.user.delete({ where: { id } })
-    return NextResponse.json({ success: true, message: "User deleted successfully" })
+    const deletedUser = await prisma.user.delete({
+      where: { id },
+      select: {
+        id: true,
+        imagePublicId: true, // Returned so you can clean up their Cloudinary avatar
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      deletedImagePublicId: deletedUser.imagePublicId,
+      message: "User account deleted successfully",
+    })
   } catch (err: unknown) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 }
-      )
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === "P2025") {
+        return NextResponse.json(
+          { success: false, error: "User not found" },
+          { status: 404 }
+        )
+      }
+
+      // Order.user does not have onDelete: Cascade in your schema
+      if (err.code === "P2003") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Cannot delete account with existing orders",
+          },
+          { status: 400 }
+        )
+      }
     }
 
+    console.error("Error deleting user:", err)
     return NextResponse.json(
-      { success: false, error: "Failed to delete user or user has active reservations" },
+      { success: false, error: "Failed to delete user" },
       { status: 500 }
     )
   }
