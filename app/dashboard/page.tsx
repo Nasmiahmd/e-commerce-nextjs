@@ -435,7 +435,7 @@ export default function DashboardPage() {
 
               {isAdmin ? (
                 <div
-                  onClick={() => router.push("/users")}
+                  onClick={() => router.push("/admin/users")}
                   className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-blue-300"
                 >
                   <div className="flex items-center justify-between">
